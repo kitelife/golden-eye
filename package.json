@@ -1,0 +1,28 @@
+{
+  "author": {
+    "name": "Pasindu De Silva, youngsterxyf"
+  },
+  "dependencies": {
+    "log": "^1.4.0",
+    "markdown-it": "^6.0.2",
+    "request": "^2.67.0",
+    "valid-url": "^1.0.9",
+    "yargs": "^4.7.1"
+  },
+  "description": "web application that uncovers the technologies used on websites",
+  "devDependencies": {},
+  "license": "GPLv3",
+  "main": "server.js",
+  "maintainers": [
+    {
+      "name": "pasindu",
+      "email": "ppasindud@gmail.com"
+    },
+    {
+      "name": "youngsterxyf",
+      "email": "xiayongfeng@baidu.com"
+    }
+  ],
+  "name": "golden-eye",
+  "version": "0.5.0"
+}
