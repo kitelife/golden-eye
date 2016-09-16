@@ -12,10 +12,12 @@ var urlParser = require('url');
 var qs = require('querystring');
 var fs = require('fs');
 var path = require('path');
+var dns = require('dns');
 
 var md = require('markdown-it')();
 var urlValidator = require('valid-url');
 var Log = require('log');
+var ipUtils = require('ip');
 
 var wappalyzer = require("./wappalyzer");
 
@@ -25,27 +27,27 @@ var argv = require('yargs').option('m', {alias: 'multiple', default: 1, type: 'n
 const HTTP_PORT = 8000;
 const NAIVE_TOKEN = '1qazXSW2cvbnm';
 
-function check_fingerprint(req, res) {
+function checkFP(req, res) {
+    //
     let urlParts = urlParser.parse(req.url);
     if (urlParts.pathname !== '/check') {
         res.statusCode = 200;
         fs.readFile(path.join(path.dirname(process.argv[1]), 'welcome.md'), 'utf8', function (err, data) {
-           if (err) {
-               logger.error(err);
-               res.write('欢迎使用！');
-           } else {
-               res.write(md.render(data));
-           }
-           res.end();
-           return;
+            if (err) {
+                logger.error(err);
+                res.write('欢迎使用！');
+            } else {
+                res.write(md.render(data));
+            }
+            res.end();
         });
         return;
     }
 
+    //
     req.query = qs.parse(urlParts.query);
 
     var token = req.query.token;
-
     if (token !== NAIVE_TOKEN) {
         res.statusCode = 403;
         res.write('禁止访问！');
@@ -53,8 +55,8 @@ function check_fingerprint(req, res) {
         return;
     }
 
+    //
     var targetURL = req.query.url;
-
     if (targetURL === undefined) {
         res.statusCode = 400;
         res.write('缺少必要的请求参数url');
@@ -67,14 +69,43 @@ function check_fingerprint(req, res) {
         res.end();
         return;
     }
+    //
+    urlParts = urlParser.parse(targetURL);
+    dns.resolve(urlParts.hostname, 'A', function(err, addresses) {
+        if (err) {
+            logger.error(err);
+            res.write(JSON.stringify({
+                status: 'failed',
+                message: '域名解析失败'
+            }));
+            res.end();
+            return;
+        }
+        for(var index in addresses) {
+            if (ipUtils.isPrivate(addresses[index])) {
+                logger.info(targetURL, 'is inner');
+                res.write(JSON.stringify({
+                    status: 'failed',
+                    'message': '域名不可解析'
+                }));
+                res.end();
+                return;
+            }
+        }
+        _check_fingerprint(targetURL, res);
+    });
+}
 
+function _check_fingerprint(targetURL, res) {
     var options = {
         url: targetURL,
         headers: {
             'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_11_2) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/47.0.2526.80 Safari/537.36'
         },
         debug: false,
-        maxRedirects: 5
+        maxRedirects: 5,
+        // 禁止跳转，防SSRF
+        followRedirect: false
     };
 
     // 记录一下
@@ -144,6 +175,6 @@ if (cluster.isMaster) {
 } else {
     // Workers can share any TCP connection
     // In this case it is an HTTP server
-    http.createServer(check_fingerprint).listen(HTTP_PORT);
+    http.createServer(checkFP).listen(HTTP_PORT);
     logger.info('进程id:', process.pid, '监听端口:', HTTP_PORT);
 }

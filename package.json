@@ -3,6 +3,7 @@
     "name": "Pasindu De Silva, youngsterxyf"
   },
   "dependencies": {
+    "ip": "^1.1.3",
     "log": "^1.4.0",
     "markdown-it": "^6.0.2",
     "request": "^2.67.0",
