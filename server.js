@@ -31,7 +31,10 @@ function checkFP(req, res) {
     //
     let urlParts = urlParser.parse(req.url);
     if (urlParts.pathname !== '/check') {
+        //
         res.statusCode = 200;
+        res.setHeader("Content-Type", "text/html; charset=utf-8");
+        //
         fs.readFile(path.join(path.dirname(process.argv[1]), 'welcome.md'), 'utf8', function (err, data) {
             if (err) {
                 logger.error(err);
